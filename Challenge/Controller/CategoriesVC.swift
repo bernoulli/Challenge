@@ -33,7 +33,7 @@ class CategoriesVC: UIViewController, UITableViewDataSource, UITableViewDelegate
         searchController.searchResultsUpdater = self
         Table.dataSource = self
         Table.delegate = self
-        parse()
+        getCategories()
         
 
     }
@@ -60,44 +60,56 @@ class CategoriesVC: UIViewController, UITableViewDataSource, UITableViewDelegate
         
     }
     
-    func parse() {
+    func getCategories() {
+        let baseURL = DataService.Categories
+        let endpointURL = URL(string: baseURL)
         
-            let url = URL(string: DataService.Categories)!
-            let task = URLSession.shared.dataTask(with: url) { (data, response, error) in
-            if let error = error {
-                    print("error: \(error)")
-                } else {
-                    if let response = response as? HTTPURLResponse {
-                        print("statusCode: \(response.statusCode)")
-                    }
-                    if let data = data, let dataString = String(data: data, encoding: .utf8) {
-                        print("data: \(dataString)")
+        URLSession.shared.dataTask(with: endpointURL!) { data, response, error in
+
+            guard error == nil else {
+                print(error!)
+                return
+            }
+            guard let jsonData = data else {
+                return
+            }
+            DispatchQueue.main.async {
             
-                    }
+                do {
+                    let decoder = JSONDecoder()
+                    let jsonData = data
                     
+                    let dataString = String(data: jsonData! as Data, encoding: .utf8)
                     
-                    do {
-                        let fetchData = try JSONDecoder().decode([Category].self, from: data!)
+                    let jsonResponse = try decoder.decode([Category].self, from: jsonData!)
+
+                    
+                    if jsonResponse != nil {
                         
-                        var arreglo: [Category] = []
+                        var arr: [Category] = []
                         
-                        for item in fetchData {
-                            arreglo.append(item)
+                        for item in jsonResponse {
+                            arr.append(item)
                         }
 
-                        self.categories = arreglo
-                    
+                        self.categories = arr
                         
-                    } catch {
+                        
+                        self.Table.reloadData()
+                    }else {
                         self.showError()
-                        print(error.localizedDescription)
                     }
-                
+                } catch {
+                    print(error)
+                    self.showError()
+                    return
                 }
             }
-            task.resume()
-     
+
+        }.resume()
     }
+    
+    
     
     func showError() {
         let ac = UIAlertController(title: "Loading error", message: "There was a problem loading the feed; please check your connection and try again", preferredStyle: .alert)

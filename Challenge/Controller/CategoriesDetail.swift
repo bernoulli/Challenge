@@ -25,56 +25,61 @@ class CategoriesDetail: UITableViewController {
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Filter", style: .plain, target: self, action: #selector(filterProducts))
     
+        
+        getProducts()
+    
         self.TableProducts.reloadData()
-        
-        var urlString: String
-        
-        //urlString = "https://api.mercadolibre.com/sites/MLA/search?category=MLA1055"
-        urlString = DataService.Category + searchItem
-        
-        
-        if let url = URL(string: urlString) {
-            
-            do{
-                if let data = try? Data(contentsOf: url) {
-                    let dataString = String(data: data, encoding: .utf8)
-                    print("data: \(dataString)")
-                    parser(json: data)
-                    return
-                }
-            }catch{
-                print(error)
-            }
-            
-        }
-        
         
     }
     
-    func parser(json: Data) {
-        let decoder = JSONDecoder()
+    func getProducts() {
+        let baseURL = "https://api.mercadolibre.com/sites/MLA/search?category=" + detailItem!.id
+        let endpointURL = URL(string: baseURL)
         
-        do{
-            if let jsonPetitions = try? decoder.decode(Products.self, from: json) {
-                products = jsonPetitions.results
-                print("productos: ", products)
-                tableView.reloadData()
+        URLSession.shared.dataTask(with: endpointURL!) { data, response, error in
+
+            guard error == nil else {
+                print(error!)
+                return
             }
-        }catch {
-            print(error)
-        }
+            guard let jsonData = data else {
+                return
+            }
+            DispatchQueue.main.async {
+            
+                do {
+                    let decoder = JSONDecoder()
+                    let jsonData = data
+                    let dataString = String(data: jsonData! as Data, encoding: .utf8)
+                    
+                    let jsonResponse = try decoder.decode(productsResponseDataModel.self, from: jsonData!)
+                    
+                    if jsonResponse != nil {
+                        self.products = jsonResponse.products
+                        self.TableProducts.reloadData()
+                    }else {
+                        self.showError()
+                    }
+                } catch {
+                    print(error)
+                    self.showError()
+                    return
+                }
+            }
+
+        }.resume()
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+       
         return products.count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "ProductCell", for: indexPath)
+            let cell = tableView.dequeueReusableCell(withIdentifier: "ProductCell2", for: indexPath)
             
-            let product = products[indexPath.row]
+        let product = self.products[indexPath.row]
             cell.textLabel?.text = product.title
-            cell.detailTextLabel?.text = String(product.price!)
     
             return cell
         
@@ -104,11 +109,17 @@ class CategoriesDetail: UITableViewController {
         
     }
     
+    func showError() {
+        let ac = UIAlertController(title: "Loading error", message: "There was a problem loading the feed; please check your connection and try again", preferredStyle: .alert)
+        ac.addAction(UIAlertAction(title: "OK", style: .default))
+        present(ac, animated: true)
+    }
+    
     func submit(answer: String) {
         
         for p in products {
             
-            if p.title!.contains(answer) {
+            if p.title.contains(answer) {
                 filteredProducts.append(p)
             }
             

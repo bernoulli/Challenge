@@ -31,7 +31,7 @@ class DetailVC: UIViewController {
         guard let detailItem = detailItem else { return }
         
         name?.text = detailItem.title
-        price?.text = String(detailItem.price!)
+        price?.text = String(detailItem.price)
         setImage(from: detailItem.thumbnail)
     
         

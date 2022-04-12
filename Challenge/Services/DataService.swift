@@ -11,6 +11,5 @@ struct DataService {
     
     static let Product: String = "https://api.mercadolibre.com/sites/MLA/search?="
     static let Categories: String = "https://api.mercadolibre.com/sites/MLA/categories"
-    static let Category: String = "https://api.mercadolibre.com/sites/MLA/search?category=$CATEGORY_ID"
     
 }

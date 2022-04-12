@@ -7,22 +7,41 @@
 
 import Foundation
 struct Product: Decodable {
-    private(set) public var id: String?
-    private(set) public var title: String?
-    private(set) public var price: Int?
-    private(set) public var thumbnail: String
+    
+    let id: String
+    let title: String
+    let price: Double
+    let thumbnail: String
     
     enum CodingKeys: String, CodingKey {
-            case id
-            case title
-            case price
-            case thumbnail
+            case id = "id"
+            case title = "title"
+            case price = "price"
+            case thumbnail = "thumbnail"
         }
     
-    init(id: String, title: String, price: Int, thumbnail: String) {
+    init(id: String, title: String, price: Double, thumbnail: String) {
         self.id = id
         self.title = title
         self.price = price
         self.thumbnail = thumbnail
+
+
+    }
+    
+}
+
+struct productsResponseDataModel: Decodable {
+    let products: [Product]
+    
+    enum CodingKeys: String, CodingKey {
+        case results = "results"
+        
+    }
+        
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.products = try container.decode([Product].self, forKey: .results)
+
     }
 }

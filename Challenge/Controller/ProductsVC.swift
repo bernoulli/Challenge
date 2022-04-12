@@ -16,7 +16,7 @@ class ProductsVC: UITableViewController {
     var products = [Product]()
     var detailItem: Category?
     var searchItem: String = ""
-    var filteredProducts = [Product]()
+    var filteredProducts: [Product] = []
     
     
     override func viewDidLoad() {
@@ -25,50 +25,66 @@ class ProductsVC: UITableViewController {
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Filtrar", style: .plain, target: self, action: #selector(filterProducts))
         
+        getProducts()
+        
         self.TableProducts.reloadData()
         
-        var urlString = "https://api.mercadolibre.com/sites/MLA/search?q="
-        urlString = urlString + searchItem
+    }
+    
+    
+    func getProducts() {
         
-        if let url = URL(string: urlString) {
-            if let data = try? Data(contentsOf: url) {
-                let dataString = String(data: data, encoding: .utf8)
-                //print("data: \(dataString)")
-                parser(json: data)
+        let baseURL = "https://api.mercadolibre.com/sites/MLA/search?q=" + searchItem
+        let endpointURL = URL(string: baseURL)
+        
+        URLSession.shared.dataTask(with: endpointURL!) { data, response, error in
+
+            guard error == nil else {
+                print(error!)
                 return
-            }else {
-                showError()
             }
+            guard let jsonData = data else {
+                return
+            }
+            DispatchQueue.main.async {
             
-        }
-        
-    }
-    
-    func parser(json: Data) {
-        let decoder = JSONDecoder()
-        
-        do{
-            if let jsonPetitions = try? decoder.decode(Products.self, from: json) {
-                products = jsonPetitions.results
-                tableView.reloadData()
+                do {
+                    let decoder = JSONDecoder()
+                    let jsonData = data
+                    
+                    let dataString = String(data: jsonData! as Data, encoding: .utf8)
+                    
+                    let jsonResponse = try decoder.decode(productsResponseDataModel.self, from: jsonData!)
+                    
+                    
+                    if jsonResponse != nil {
+                        self.products = jsonResponse.products
+                        
+                        self.TableProducts.reloadData()
+                    }else {
+                        self.showError()
+                    }
+                } catch {
+                    print(error)
+                    self.showError()
+                    return
+                }
             }
-        }catch {
-            print(error)
-        }
+
+        }.resume()
     }
-    
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        
         return products.count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
             let cell = tableView.dequeueReusableCell(withIdentifier: "ProductCell", for: indexPath)
 
-            let product = products[indexPath.row]
+            let product = self.products[indexPath.row]
             cell.textLabel?.text = product.title
-            cell.detailTextLabel?.text = String(product.price!)
-    
+            
             return cell
         
     }
@@ -98,7 +114,7 @@ class ProductsVC: UITableViewController {
     }
     
     func showError() {
-        let ac = UIAlertController(title: "Loading error", message: "There was a problem loading the feed; please check your connection and try again", preferredStyle: .alert)
+        let ac = UIAlertController(title: "Loading error", message: "There was a problem loading the data; please check your connection and try again", preferredStyle: .alert)
         ac.addAction(UIAlertAction(title: "OK", style: .default))
         present(ac, animated: true)
     }
@@ -107,7 +123,7 @@ class ProductsVC: UITableViewController {
         
         for p in products {
             
-            if p.title!.contains(answer) {
+            if p.title.contains(answer) {
                 filteredProducts.append(p)
             }
             
